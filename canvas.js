@@ -1,6 +1,6 @@
 "use strict";
 
-class Cell {
+/*class Cell {
     constructor(x, y) {
         if (typeof x === "string") {
             [x, y] = x.split(',').map(num => {
@@ -32,51 +32,82 @@ class Cell {
     toString() {
         return this.x.toString() + "," + this.y.toString()
     }
-}
+}*/
 
-class LivingCells {
-    constructor() {
-        this.cells = new Map();
-    };
-
-    addCell(x, y) {
-        this.cells.set(new Cell(x, y).toString(), true);
+// Handles the game's field and its cells
+class ToroidalArray {
+    #field;
+    constructor(width, height) {
+        this.#field = new Array(height);
+        this.maxX = width;
+        this.maxY = height;
+        for (let i = 0; i < height; i++) {
+            this.#field[i] = new Array(width).fill(false);
+        }
     }
 
-    removeCell(x, y) {
-        this.cells.delete();
+    get(x, y) {
+        if (x < 0) {
+            x = this.maxX - x;
+        }
+        if (y < 0) {
+            y = this.maxY - y;
+        }
+        return this.#field[y % this.maxY][x % this.maxX];
+    }
+
+    set(x, y, value) {
+        this.#field[y % this.maxY][x % this.maxX] = value;
+    }
+
+    flip(x, y) {
+        let value = this.#field[y % this.maxY][x % this.maxX];
+        this.#field[y % this.maxY][x % this.maxX] = !value;
+    }
+}
+
+// Manages the game's logic
+class Universe {
+    constructor(width, height) {
+        if (Array.isArray(width) && width.length >= 2) {
+            return new Universe(width[0], width[1]);
+        }
+        this.cells = new ToroidalArray(width, height);
+    };
+
+    flipCell(x, y) {
+        this.cells.flip(x, y);
+    }
+
+    getCell(x, y) {
+        return this.cells.get(x, y);
     }
 
     countNeighbors(x, y) {
         let count = 0;
         let checks = [
             [-1, -1], [-1, 0], [-1, 1],
-            [0, -1], [0, 1],
+            [0, -1],  [0, 0], [0, 1],
             [+1, -1], [1, 0], [1, 1]
         ]
-        for (let [directionX, directionY] in checks) {
+        for (let [directionX, directionY] of checks) {
             let tileY = y + directionY;
-            if (tileY < 0) tileY = 0;
-            else if (tileY > this.buffer[0].length) tileY = this.buffer[0].length;
             let tileX = x + directionX;
-            if (tileX < 0) tileX = 0;
-            else if (tileX > this.buffer[0][0].length) tileX = this.buffer[0][0].length;
-            if (this.buffer[0][tileY][tileX] === true) {
-                count++;
-            }
+            console.log(`${tileX}, ${tileY}`)
+            console.log()
+            if (this.cells.get(tileX, tileY) === true) count++;
         }
         return count;
     }
 
     nextGeneration() {
-        for (let i = 0; i < this.buffer[1].length; i++) {
-            for (let j = 0; j < this.buffer[1][i].length; j++) {
-                let neighbors = this.countNeighbors(j, i);
-                let cell = this.buffer[0][j][i];
-                if (cell === false && neighbors === 3) {
-                    this.buffer[0][j][i] = true;
-                } else if (!(cell === true && (neighbors === 3 || neighbors === 2))) {
-                    this.buffer[0][j][i] = false;
+        for (let y = 0; y < this.cells.maxY; y++) {
+            for (let x = 0; x < this.cells.maxX; x++) {
+                let neighbors = this.countNeighbors(x, y);
+                if (neighbors === 3) {
+                    this.cells.set(x, y, true);
+                } else if (neighbors !== 4) {
+                    this.cells.set(x, y, false);
                 }
             }
         }
@@ -84,7 +115,6 @@ class LivingCells {
 
     tick() {
         this.nextGeneration();
-        [this.buffer[0], this.buffer[1]] = [this.buffer[1], this.buffer[0]]
     }
 }
 
@@ -131,7 +161,7 @@ class Canvas {
 
     // Returns the amount of vertical and horizontal tiles
     countCells() {
-        let numX = 0, numY = 0;
+        let numX, numY;
         numX = Math.floor(this.canvas.width / this.tileSide);
         numY = Math.floor(this.canvas.height / this.tileSide);
         return [numX, numY];
@@ -139,9 +169,9 @@ class Canvas {
 
     updateCanvas(field) {
         const bounding = canvas.canvas.getBoundingClientRect();
-        for (let y = 0; y < field.length; y++) {
-            for (let x = 0; x < field[0].length; x++) {
-                if (field[y][x] === true) {
+        for (let y = 0; y < field.maxY; y++) {
+            for (let x = 0; x < field.maxX; x++) {
+                if (field.get(x, y) === true) {
                     this.fillTile(x * this.tileSide, y * this.tileSide);
                 } else {
                     this.clearTile(x * this.tileSide, y * this.tileSide);
@@ -153,24 +183,31 @@ class Canvas {
 
 let canvas = new Canvas(30);
 canvas.drawGrid();
-let field = new LivingCells(canvas.countCells());
-field.addCell(0, 0);
-field.addCell(0, 1);
-field.addCell(1, 1);
-// canvas.updateCanvas(field.buffer[0]);
+let field = new Universe(canvas.countCells());
+field.flipCell(0, 0);
+field.flipCell(0, 1);
+field.flipCell(1, 1);
+field.flipCell(1, 0);
+canvas.updateCanvas(field.cells);
 const bounding = canvas.canvas.getBoundingClientRect();
 ["click", "dblclick"].forEach(function (evt) {
     canvas.canvas.addEventListener(evt, event => {
         let [x, y] = [event.clientX - bounding.left, event.clientY - bounding.top];
         console.log(`Drawing dot at ${x} ${y}`)
+        let [actualX, actualY] = canvas.findTile(x, y);
+        console.log(field.countNeighbors(actualX, actualY));
         if (evt === "click") canvas.fillTile(x, y);
         else canvas.clearTile(x, y);
     })
 })
-window.requestAnimationFrame(gameLoop);
-
-function gameLoop() {
-    field.tick();
-    canvas.updateCanvas(field.buffer[0])
-    window.requestAnimationFrame(gameLoop);
-}
+// window.onresize = function () {
+//     canvas.canvas.width = document.body.clientWidth;
+//     canvas.drawGrid();
+// }
+// window.requestAnimationFrame(gameLoop);
+//
+// async function gameLoop() {
+//     canvas.updateCanvas(field.cells)
+//     field.tick();
+//     await new Promise(resolve => setTimeout(resolve, 1000));
+// }
