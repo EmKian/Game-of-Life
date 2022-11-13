@@ -48,11 +48,12 @@ class ToroidalArray {
 
     get(x, y) {
         if (x < 0) {
-            x = this.maxX - x;
+            x = this.maxX - Math.abs(x);
         }
         if (y < 0) {
-            y = this.maxY - y;
+            y = this.maxY - Math.abs(y);
         }
+        console.log(`${x} ${y}`)
         return this.#field[y % this.maxY][x % this.maxX];
     }
 
@@ -93,24 +94,26 @@ class Universe {
         for (let [directionX, directionY] of checks) {
             let tileY = y + directionY;
             let tileX = x + directionX;
-            console.log(`${tileX}, ${tileY}`)
-            console.log()
             if (this.cells.get(tileX, tileY) === true) count++;
         }
         return count;
     }
 
     nextGeneration() {
+        let newGen = new ToroidalArray(this.cells.maxX, this.cells.maxY);
         for (let y = 0; y < this.cells.maxY; y++) {
             for (let x = 0; x < this.cells.maxX; x++) {
                 let neighbors = this.countNeighbors(x, y);
                 if (neighbors === 3) {
-                    this.cells.set(x, y, true);
+                    newGen.set(x, y, true);
                 } else if (neighbors !== 4) {
-                    this.cells.set(x, y, false);
+                    newGen.set(x, y, false);
+                } else {
+                    newGen.set(x, y, this.cells.get(x, y))
                 }
             }
         }
+        this.cells = newGen;
     }
 
     tick() {
@@ -122,7 +125,6 @@ class Canvas {
     constructor(tileArea = 10, canvasId = "") {
         this.canvas = document.getElementById(canvasId);
         if (this.canvas === null) {
-            console.log("ciao");
             this.canvas = document.querySelector("canvas");
         }
         this.tileSide = tileArea;
@@ -145,6 +147,13 @@ class Canvas {
     findTile(x, y) {
         return [Math.floor(x / this.tileSide) * this.tileSide, Math.floor(y / this.tileSide) * this.tileSide]
     }
+
+    findTileNum(x, y) {
+        // let [acx, acy] = this.findTile(x, y);
+        // return [Math.floor(acx / this.tileSide), Math.floor(acy / this.tileSide)];
+        return [Math.floor(x / this.tileSide), Math.floor(y / this.tileSide)]
+    }
+
 
     fillTile(x, y) {
         let [tileX, tileY] = this.findTile(x, y);
@@ -188,26 +197,42 @@ field.flipCell(0, 0);
 field.flipCell(0, 1);
 field.flipCell(1, 1);
 field.flipCell(1, 0);
+field.flipCell(5, 10);
+field.flipCell(6, 10);
+field.flipCell(7, 10);
 canvas.updateCanvas(field.cells);
 const bounding = canvas.canvas.getBoundingClientRect();
-["click", "dblclick"].forEach(function (evt) {
-    canvas.canvas.addEventListener(evt, event => {
+["click"].forEach(function (evt) {
+    canvas.canvas.addEventListener(evt, async event => {
         let [x, y] = [event.clientX - bounding.left, event.clientY - bounding.top];
-        console.log(`Drawing dot at ${x} ${y}`)
-        let [actualX, actualY] = canvas.findTile(x, y);
+        let [actualX, actualY] = canvas.findTileNum(x, y);
+        console.log(`Drawing dot at ${actualX} ${actualY}`);
         console.log(field.countNeighbors(actualX, actualY));
-        if (evt === "click") canvas.fillTile(x, y);
+        field.flipCell(actualX, actualY);
+        if (field.getCell(actualX, actualY)) canvas.fillTile(x, y);
         else canvas.clearTile(x, y);
     })
+})
+let intervalID = setInterval((() => doUpdate = true), 1000);
+document.getElementById("stop-button").addEventListener("click", async event => {
+    if (intervalID !== null) {
+        clearInterval(intervalID);
+    } else {
+        intervalID = setInterval((() => doUpdate = true), 1000);
+    }
 })
 // window.onresize = function () {
 //     canvas.canvas.width = document.body.clientWidth;
 //     canvas.drawGrid();
 // }
-// window.requestAnimationFrame(gameLoop);
-//
-// async function gameLoop() {
-//     canvas.updateCanvas(field.cells)
-//     field.tick();
-//     await new Promise(resolve => setTimeout(resolve, 1000));
-// }
+window.requestAnimationFrame(gameLoop);
+
+let doUpdate = false;
+async function gameLoop() {
+    if (doUpdate) {
+        field.tick();
+        canvas.updateCanvas(field.cells)
+        doUpdate = false;
+    }
+    window.requestAnimationFrame(gameLoop);
+}
