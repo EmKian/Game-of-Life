@@ -37,6 +37,7 @@
 // Handles the game's field and its cells
 class ToroidalArray {
     #field;
+
     constructor(width, height) {
         this.#field = new Array(height);
         this.maxX = width;
@@ -53,7 +54,6 @@ class ToroidalArray {
         if (y < 0) {
             y = this.maxY - Math.abs(y);
         }
-        console.log(`${x} ${y}`)
         return this.#field[y % this.maxY][x % this.maxX];
     }
 
@@ -88,7 +88,7 @@ class Universe {
         let count = 0;
         let checks = [
             [-1, -1], [-1, 0], [-1, 1],
-            [0, -1],  [0, 0], [0, 1],
+            [0, -1], [0, 0], [0, 1],
             [+1, -1], [1, 0], [1, 1]
         ]
         for (let [directionX, directionY] of checks) {
@@ -122,21 +122,33 @@ class Universe {
 }
 
 class Canvas {
+    #actualHeight;
+    #actualWidth;
     constructor(tileArea = 10, canvasId = "") {
         this.canvas = document.getElementById(canvasId);
         if (this.canvas === null) {
             this.canvas = document.querySelector("canvas");
         }
         this.tileSide = tileArea;
+        this.#actualHeight = this.canvas.parentElement.offsetHeight;
+        this.#actualWidth = this.canvas.parentElement.offsetWidth;
+    }
+
+    clear() {
+        const cx = this.canvas.getContext("2d");
+        cx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     drawGrid() {
-        let cx = this.canvas.getContext("2d");
+        const cx = this.canvas.getContext("2d");
+        cx.beginPath();
         cx.strokeStyle = "black"
+        cx.lineWidth = 0.2;
         for (let x = 0; x <= this.canvas.width; x += this.tileSide) {
             cx.moveTo(x, 0);
             cx.lineTo(x, this.canvas.height);
         }
+        cx.stroke()
         for (let y = 0; y <= this.canvas.height; y += this.tileSide) {
             cx.moveTo(0, y);
             cx.lineTo(this.canvas.width, y);
@@ -176,7 +188,7 @@ class Canvas {
         return [numX, numY];
     }
 
-    updateCanvas(field) {
+    updateCells(field) {
         const bounding = canvas.canvas.getBoundingClientRect();
         for (let y = 0; y < field.maxY; y++) {
             for (let x = 0; x < field.maxX; x++) {
@@ -188,11 +200,24 @@ class Canvas {
             }
         }
     }
+
+    updateCanvas() {
+        this.clear();
+        this.resize();
+        this.drawGrid();
+    }
+
+    resize() {
+        this.canvas.width = Math.floor(this.#actualWidth / this.tileSide) * this.tileSide;
+        this.canvas.height = Math.floor(this.#actualHeight / this.tileSide) * this.tileSide;
+    }
+
 }
 
-let canvas = new Canvas(30);
+const canvas = new Canvas(30);
+canvas.resize();
 canvas.drawGrid();
-let field = new Universe(canvas.countCells());
+const field = new Universe(canvas.countCells());
 field.flipCell(0, 0);
 field.flipCell(0, 1);
 field.flipCell(1, 1);
@@ -200,38 +225,16 @@ field.flipCell(1, 0);
 field.flipCell(5, 10);
 field.flipCell(6, 10);
 field.flipCell(7, 10);
-canvas.updateCanvas(field.cells);
-const bounding = canvas.canvas.getBoundingClientRect();
-["click"].forEach(function (evt) {
-    canvas.canvas.addEventListener(evt, async event => {
-        let [x, y] = [event.clientX - bounding.left, event.clientY - bounding.top];
-        let [actualX, actualY] = canvas.findTileNum(x, y);
-        console.log(`Drawing dot at ${actualX} ${actualY}`);
-        console.log(field.countNeighbors(actualX, actualY));
-        field.flipCell(actualX, actualY);
-        if (field.getCell(actualX, actualY)) canvas.fillTile(x, y);
-        else canvas.clearTile(x, y);
-    })
-})
-let intervalID = setInterval((() => doUpdate = true), 1000);
-document.getElementById("stop-button").addEventListener("click", async event => {
-    if (intervalID !== null) {
-        clearInterval(intervalID);
-    } else {
-        intervalID = setInterval((() => doUpdate = true), 1000);
-    }
-})
-// window.onresize = function () {
-//     canvas.canvas.width = document.body.clientWidth;
-//     canvas.drawGrid();
-// }
+canvas.updateCells(field.cells);
 window.requestAnimationFrame(gameLoop);
 
 let doUpdate = false;
+let tickPerSecond = 1;
+
 async function gameLoop() {
     if (doUpdate) {
         field.tick();
-        canvas.updateCanvas(field.cells)
+        canvas.updateCells(field.cells)
         doUpdate = false;
     }
     window.requestAnimationFrame(gameLoop);

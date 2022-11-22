@@ -5,17 +5,33 @@
     <meta content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
           name="viewport">
     <meta content="ie=edge" http-equiv="X-UA-Compatible">
+    <link rel="stylesheet" href="style.css">
     <title>Game of Life</title>
     <script src="canvas.js" defer></script>
+    <script src="ui.js" defer></script>
 </head>
 <body>
 <div>
-    <h1>Game of Life</h1>
-    <div>
+    <header>
+        <div>
+            <h1>Game of Life</h1>
+        </div>
+        <span class="drawing-controller">
+            <button id="draw-button">draw</button>
+            <button>drag</button>
+            <input type="range" autocomplete="off" min="3" max="60" value="30" step="5" class="slider" id="tile-density">
+            <input type="range" autocomplete="off" min="1" max="64" value="1" step="1" class="slider" id="tick-rate">
+        </span>
+    </header>
+    <div class="canvas">
         <canvas height="600" width="1200" style="background-color: grey"></canvas>
     </div>
-    <p>After canvas</p>
-    <button id="stop-button">STOP</button>
+    <footer>
+        <div class="control-area">
+            <button id="stop-button">STOP</button>
+            <button id="step-button">Step</button>
+        </div>
+    </footer>
 </div>
 </body>
 </html>
