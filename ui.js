@@ -64,7 +64,7 @@ document.getElementById("draw-button").addEventListener("click", () => {
 document.getElementById("tile-density").addEventListener("input", event => {
     canvas.tileSide = event.target.valueAsNumber;
     console.log(event.target.value)
-    canvas.updateCanvas();
+    canvas.updateCanvas(field.cells);
 })
 
 document.getElementById("tick-rate").addEventListener("input", event => {
@@ -74,6 +74,17 @@ document.getElementById("tick-rate").addEventListener("input", event => {
         clearInterval(intervalID)
         intervalID = setInterval((() => doUpdate = true), 1000 / tickPerSecond);
     }
+})
+
+window.addEventListener("resize", () => {
+    const parentElement = canvas.canvas.parentElement;
+    // I first set the canvas' size to 0 to keep it from growing indefinitely
+    canvas.changeParentSize(0, 0);
+    canvas.updateCanvas(field.cells);
+    let height = parentElement.offsetHeight;
+    let width = window.innerWidth;
+    canvas.changeParentSize(width, height);
+    canvas.updateCanvas(field.cells);
 })
 
 function changeInterval(value = null) {

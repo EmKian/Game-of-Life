@@ -27,7 +27,7 @@
 
     equals(Cell) {
         return this.x === Cell.x && this.y === Cell.y;
-    }
+   }
 
     toString() {
         return this.x.toString() + "," + this.y.toString()
@@ -201,13 +201,21 @@ class Canvas {
         }
     }
 
-    updateCanvas() {
+    changeParentSize(width, height) {
+        this.#actualWidth = width;
+        this.#actualHeight = height;
+    }
+
+    updateCanvas(field = null) {
         this.clear();
         this.resize();
         this.drawGrid();
+        if (field !== null) {
+            this.updateCells(field);
+        }
     }
 
-    resize() {
+   resize() {
         this.canvas.width = Math.floor(this.#actualWidth / this.tileSide) * this.tileSide;
         this.canvas.height = Math.floor(this.#actualHeight / this.tileSide) * this.tileSide;
     }

@@ -5,33 +5,35 @@
     <meta content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
           name="viewport">
     <meta content="ie=edge" http-equiv="X-UA-Compatible">
-    <link rel="stylesheet" href="style.css">
+    <link href="style.css" rel="stylesheet">
     <title>Game of Life</title>
-    <script src="canvas.js" defer></script>
-    <script src="ui.js" defer></script>
+    <script defer src="canvas.js"></script>
+    <script defer src="ui.js"></script>
 </head>
 <body>
-<div>
-    <header>
-        <div>
-            <h1>Game of Life</h1>
-        </div>
-        <span class="drawing-controller">
+<main id="grid">
+
+<header>
+    <div>
+        <h1>Game of Life</h1>
+    </div>
+    <span class="drawing-controller">
             <button id="draw-button">draw</button>
             <button>drag</button>
-            <input type="range" autocomplete="off" min="3" max="60" value="30" step="5" class="slider" id="tile-density">
-            <input type="range" autocomplete="off" min="1" max="64" value="1" step="1" class="slider" id="tick-rate">
+            <input autocomplete="off" class="slider" id="tile-density" max="60" min="3" step="5" type="range" title="Change the dimensions of the tiles"
+                   value="30">
+            <input autocomplete="off" class="slider" id="tick-rate" max="64" min="1" step="1" type="range" value="1" title="Change the speed of the simulation">
         </span>
-    </header>
-    <div class="canvas">
-        <canvas height="600" width="1200" style="background-color: grey"></canvas>
-    </div>
-    <footer>
-        <div class="control-area">
-            <button id="stop-button">STOP</button>
-            <button id="step-button">Step</button>
-        </div>
-    </footer>
+</header>
+<div class="canvas">
+    <canvas height="600" width="1200" style="background-color: grey"></canvas>
 </div>
+<footer>
+    <div class="control-area">
+        <button id="stop-button">STOP</button>
+        <button id="step-button">Step</button>
+    </div>
+</footer>
+</main>
 </body>
 </html>
